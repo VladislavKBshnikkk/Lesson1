@@ -1,0 +1,102 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.IO;
+
+
+namespace ConsoleApp22
+{
+    class Program
+    {
+        static string[] Method(string path, string device_name)// разрабатываем метод для парсинга необходимй информации
+        {
+            string[] arr = File.ReadAllLines(path); // Считываем текст из файла построчно
+            int index;
+            int index_1, index_2;// переменные для вычленения названий устройств в файле
+
+            string pokazaniya = ""; // Показания устройства соответствующие файлу
+            string time = ""; // Показания устройства соответствующие файлу
+            for (int j = 0; j < arr.Length; j++)
+            {
+                if (arr[j] != string.Empty) //Исключаем все пустые строки
+                {
+                    index_1 = arr[j].IndexOf(":");// Получаем первый индекс
+                    index_2 = arr[j].LastIndexOf(":"); //Получаем второй индекс 
+                    string name_of_element = arr[j].Substring(index_1 + 1, index_2 - index_1 - 1); // Получаем  имена устройств в файле
+                    if (device_name == name_of_element) // Сравниваем с исходными(пользовательскими)
+                    {
+                        index = arr[j].LastIndexOf(":"); // Последний индекс вхождения в считываему строку: после которого будут показания устройств
+                        pokazaniya = arr[j].Substring(index + 1, arr[j].Length - index - 1); // Получаем показания
+                        int first_border = arr[j].IndexOf(":");
+                        time = arr[j].Substring(0, first_border);
+                    }
+                }
+            }
+
+            return new string[] { pokazaniya, time }; // Возвращаем показания(если устройство есть в файле, то возвращается его показание, иначе пустое значение
+        }
+
+
+        static void Main(string[] args)
+        {
+            string path_to_directory = @"C:\Users\User\Desktop\lesson_1-master\lesson_1-master\logs";
+            DirectoryInfo directory = new DirectoryInfo(path_to_directory); //Создаём объект директории
+            FileInfo[] all_files = directory.GetFiles(); //Считываем все файлы директории
+            string[] names = new string[all_files.Length]; //Создаём массив для сохранения имён файлов
+            int i = 0;
+            foreach (FileInfo fi in all_files) //получаем имена всей файлов директории
+            {
+                names[i] = fi.Name;
+                i++;
+            }
+
+            string[,] measurements = new string[all_files.Length, 2]; //Массив для сохранения необходимой информации. Первый столбец дата, второй показания
+            string device_name = ""; //Переменная для сохранения пользовательского ввода
+            do
+            {
+                Console.WriteLine("Для просмотра необходимой информации об устройстве введите его название \nДля выхода нажмите q\n  ");//Пользоватльский ввод информации
+                device_name = Console.ReadLine();// получаем пользовательское название устройства
+                device_name = device_name.Replace(" ", "");// Убираем пробелы. 
+                int chek = 0; // Проверяем правильность пользовательского ввода
+                if (device_name.IndexOf("garbage") == -1 && device_name != "q") // исключаем мусор
+                {
+                    for (i = 0; i < names.Length; i++)
+                    {
+
+                        int position1 = names[i].IndexOf("("); // Получаем индекс первого вхождения этой скобки
+                        int position2 = names[i].IndexOf(")"); // Получаем индекс первого вхождения этой скобки
+                        measurements[i, 0] = names[i].Substring(position1 + 1, position2 - position1 - 1); // Вырезаем дату с название устройств
+                        //.............................................................................................
+                        string path = path_to_directory + "//" + names[i]; // Получаем путь поочерёдно к каждому файлу папки логов
+                        if (Method(path, device_name)[0] != "")
+                        {
+                            measurements[i, 1] = Method(path, device_name)[0]; // Применяем метод для получения показаний устройства из файлов
+                            measurements[i, 0] += "-"+ Method(path, device_name)[1]; // Применяем метод для получения показаний устройства из файлов
+                        }
+                        else
+                            chek++; // Если устройства нет в одном из файлов(должен быть в каждом), то прибавления не происходит, иначе накапливаем сумму
+                    }
+
+
+
+                    // выводим полученный результат
+
+                    Console.WriteLine(".>> show device >> " + device_name + ":");
+                    Console.WriteLine();
+                    if (chek != names.Length) // Если количество значений, полученных для устройства равно количеству файлов в папке логов, то пользователь ввёл верное значение иначе введено некорректное значение
+                    {  // Вывод информации пользователем
+                        Console.WriteLine("Дата\t" + "\t\tПоказания");
+                        for (i = 0; i < names.Length; i++)
+                            Console.WriteLine(measurements[i, 0] + "\t" + measurements[i, 1]);
+                    }
+                    else Console.WriteLine("Error! Nothing found");
+                    Console.WriteLine();
+                }
+
+                else if (device_name.IndexOf("garbage") > -1) Console.WriteLine("Ошибка ввода, введите корректное значение\n ");
+            } while (device_name != "q");
+
+        }
+    }
+}
